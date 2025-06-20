@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Download, Trash2, Loader2 } from "lucide-react";
+import { Trash2, Loader2 } from "lucide-react";
 import { UploadedImage } from "./image-compressor";
 import { formatFileSize } from "@/lib/image-utils";
 import { useState } from "react";
@@ -20,18 +20,7 @@ export default function ImageCard({ image, onCompress, onDelete }: ImageCardProp
     setIsCompressing(false);
   };
 
-  const handleDownload = () => {
-    if (!image.compressedBlob) return;
 
-    const url = URL.createObjectURL(image.compressedBlob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = image.file.name.replace(/\.[^/.]+$/, "") + "_compressed" + image.file.name.match(/\.[^/.]+$/)?.[0];
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
 
   const savingsPercentage = image.compressedSize 
     ? Math.round(((image.originalSize - image.compressedSize) / image.originalSize) * 100)
@@ -88,15 +77,7 @@ export default function ImageCard({ image, onCompress, onDelete }: ImageCardProp
                   </>
                 )}
               </Button>
-            ) : (
-              <Button
-                onClick={handleDownload}
-                className="flex-1 bg-success text-white hover:bg-green-600 text-sm font-medium py-2 shadow-lg"
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Download
-              </Button>
-            )}
+            ) : null}
             <Button
               onClick={onDelete}
               variant="outline"
