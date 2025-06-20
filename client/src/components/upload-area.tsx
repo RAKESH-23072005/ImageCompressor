@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Plus, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -9,6 +10,7 @@ interface UploadAreaProps {
 
 export default function UploadArea({ onFilesSelected }: UploadAreaProps) {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
   const validateFile = (file: File): boolean => {
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
@@ -40,7 +42,21 @@ export default function UploadArea({ onFilesSelected }: UploadAreaProps) {
     const validFiles = fileArray.filter(validateFile);
     
     if (validFiles.length > 0) {
-      onFilesSelected(validFiles);
+      // Create uploaded images data structure
+      const uploadedImages = validFiles.map(file => ({
+        id: Date.now() + Math.random().toString(36).substr(2, 9),
+        file,
+        originalSize: file.size,
+        isCompressed: false,
+        preview: URL.createObjectURL(file)
+      }));
+
+      // Store in session storage for the compress page
+      sessionStorage.setItem('uploadedImages', JSON.stringify(uploadedImages));
+      
+      // Redirect to compress page
+      setLocation('/compress');
+      
       if (validFiles.length !== fileArray.length) {
         toast({
           title: "Some files skipped",
@@ -48,7 +64,7 @@ export default function UploadArea({ onFilesSelected }: UploadAreaProps) {
         });
       }
     }
-  }, [onFilesSelected, toast]);
+  }, [onFilesSelected, toast, setLocation]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();

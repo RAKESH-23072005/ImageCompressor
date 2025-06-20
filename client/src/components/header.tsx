@@ -9,7 +9,7 @@ export default function Header() {
           {/* Logo */}
           <div className="flex items-center">
             <div className="text-2xl font-bold text-gray-900">
-              I<span className="text-red-500">❤️</span>IMG
+              doc<span className="text-primary">Flow</span>
             </div>
           </div>
           
