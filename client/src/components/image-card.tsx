@@ -66,44 +66,59 @@ export default function ImageCard({ image, onCompress, onDelete }: ImageCardProp
             </Badge>
           )}
         </div>
-        <div className="flex space-x-2">
-          {!image.isCompressed ? (
+        <div className="flex flex-col space-y-2">
+          <div className="flex space-x-2">
+            {!image.isCompressed ? (
+              <Button
+                onClick={handleCompress}
+                disabled={isCompressing}
+                className="flex-1 bg-primary text-white hover:bg-blue-700 text-sm font-medium py-2"
+              >
+                {isCompressing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Compressing...
+                  </>
+                ) : (
+                  <>
+                    <svg className="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V8zm0 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2z" clipRule="evenodd" />
+                    </svg>
+                    Compress
+                  </>
+                )}
+              </Button>
+            ) : (
+              <Button
+                onClick={handleDownload}
+                className="flex-1 bg-success text-white hover:bg-green-600 text-sm font-medium py-2 shadow-lg"
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Download
+              </Button>
+            )}
             <Button
-              onClick={handleCompress}
-              disabled={isCompressing}
-              className="flex-1 bg-primary text-white hover:bg-blue-700 text-sm font-medium"
+              onClick={onDelete}
+              variant="outline"
+              size="sm"
+              className="text-gray-400 hover:text-red-500 px-3"
             >
-              {isCompressing ? (
-                <>
-                  <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                  Compressing...
-                </>
-              ) : (
-                <>
-                  <svg className="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V8zm0 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2z" clipRule="evenodd" />
-                  </svg>
-                  Compress
-                </>
-              )}
+              <Trash2 className="h-4 w-4" />
             </Button>
-          ) : (
-            <Button
-              onClick={handleDownload}
-              className="flex-1 bg-success text-white hover:bg-green-600 text-sm font-medium"
-            >
-              <Download className="mr-1 h-3 w-3" />
-              Download
-            </Button>
-          )}
-          <Button
-            onClick={onDelete}
-            variant="outline"
-            size="sm"
-            className="text-gray-400 hover:text-red-500 px-3"
-          >
-            <Trash2 className="h-3 w-3" />
-          </Button>
+          </div>
+          
+          {/* Status indicator */}
+          <div className="text-center">
+            {image.isCompressed ? (
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                ✓ Ready to download
+              </span>
+            ) : (
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                Ready to compress
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </div>
