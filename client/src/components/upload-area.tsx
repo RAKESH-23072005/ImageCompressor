@@ -42,16 +42,16 @@ export default function UploadArea({ onFilesSelected }: UploadAreaProps) {
     const validFiles = fileArray.filter(validateFile);
     
     if (validFiles.length > 0) {
-      // Create uploaded images data structure and store files directly
+      // Create uploaded images data structure
       const uploadedImages = validFiles.map((file, index) => {
         const id = Date.now() + index + Math.random().toString(36).substr(2, 9);
         const preview = URL.createObjectURL(file);
         
-        // Store file in a global map for retrieval
-        if (!(window as any).uploadedFiles) {
-          (window as any).uploadedFiles = new Map();
+        // Store actual file in global storage for compression
+        if (!(window as any).imageFiles) {
+          (window as any).imageFiles = new Map();
         }
-        (window as any).uploadedFiles.set(id, file);
+        (window as any).imageFiles.set(id, file);
         
         return {
           id,

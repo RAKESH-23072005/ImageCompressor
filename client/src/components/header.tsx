@@ -52,13 +52,7 @@ export default function Header() {
               </a>
             ))}
             
-            <div className="relative group">
-              <button className="text-gray-600 hover:text-gray-900 font-medium flex items-center px-4 py-2 rounded-lg hover:bg-gray-50 transition-all duration-200">
-                <Settings className="w-4 h-4 mr-2" />
-                MORE TOOLS 
-                <ChevronDown className="ml-1 h-4 w-4 group-hover:rotate-180 transition-transform duration-200" />
-              </button>
-            </div>
+
           </nav>
           
           {/* Enhanced Auth Buttons */}

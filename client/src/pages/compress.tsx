@@ -4,7 +4,7 @@ import Header from "@/components/header";
 import CompressionSettings from "@/components/compression-settings";
 import ImageGallery from "@/components/image-gallery";
 import ProgressIndicator from "@/components/progress-indicator";
-import FloatingActions from "@/components/floating-actions";
+
 import { useImageCompression } from "@/hooks/use-image-compression";
 import { UploadedImage } from "@/components/image-compressor";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,7 @@ export default function Compress() {
       const parsedImages = JSON.parse(storedImages);
       // Restore file objects from global map
       const restoredImages = parsedImages.map((img: any) => {
-        const actualFile = (window as any).uploadedFiles?.get(img.id);
+        const actualFile = (window as any).imageFiles?.get(img.id);
         return {
           ...img,
           file: actualFile || new File([], img.file.name, { 
@@ -116,13 +116,23 @@ export default function Compress() {
   };
 
   const handleAddMoreImages = (newFiles: File[]) => {
-    const newImages: UploadedImage[] = newFiles.map((file, index) => ({
-      id: Date.now() + index + Math.random().toString(36).substr(2, 9),
-      file,
-      originalSize: file.size,
-      isCompressed: false,
-      preview: URL.createObjectURL(file)
-    }));
+    const newImages: UploadedImage[] = newFiles.map((file, index) => {
+      const id = Date.now() + index + Math.random().toString(36).substr(2, 9);
+      
+      // Store actual file in global storage for compression
+      if (!(window as any).imageFiles) {
+        (window as any).imageFiles = new Map();
+      }
+      (window as any).imageFiles.set(id, file);
+      
+      return {
+        id,
+        file,
+        originalSize: file.size,
+        isCompressed: false,
+        preview: URL.createObjectURL(file)
+      };
+    });
     
     setUploadedImages(prev => [...prev, ...newImages]);
   };
@@ -173,6 +183,7 @@ export default function Compress() {
               onCompress={handleSingleCompress}
               onDelete={handleDeleteImage}
               onClearAll={handleClearAll}
+              onAddImages={handleAddMoreImages}
             />
           </div>
         </div>
@@ -253,8 +264,7 @@ export default function Compress() {
         </div>
       </div>
 
-      {/* Floating Action Buttons */}
-      <FloatingActions onAddImages={handleAddMoreImages} />
+
     </div>
   );
 }
