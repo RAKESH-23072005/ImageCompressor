@@ -42,16 +42,32 @@ export default function UploadArea({ onFilesSelected }: UploadAreaProps) {
     const validFiles = fileArray.filter(validateFile);
     
     if (validFiles.length > 0) {
-      // Create uploaded images data structure
-      const uploadedImages = validFiles.map(file => ({
-        id: Date.now() + Math.random().toString(36).substr(2, 9),
-        file,
-        originalSize: file.size,
-        isCompressed: false,
-        preview: URL.createObjectURL(file)
-      }));
+      // Create uploaded images data structure and store files directly
+      const uploadedImages = validFiles.map((file, index) => {
+        const id = Date.now() + index + Math.random().toString(36).substr(2, 9);
+        const preview = URL.createObjectURL(file);
+        
+        // Store file in a global map for retrieval
+        if (!(window as any).uploadedFiles) {
+          (window as any).uploadedFiles = new Map();
+        }
+        (window as any).uploadedFiles.set(id, file);
+        
+        return {
+          id,
+          file: {
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            lastModified: file.lastModified
+          },
+          originalSize: file.size,
+          isCompressed: false,
+          preview
+        };
+      });
 
-      // Store in session storage for the compress page
+      // Store metadata in session storage
       sessionStorage.setItem('uploadedImages', JSON.stringify(uploadedImages));
       
       // Redirect to compress page

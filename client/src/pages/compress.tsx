@@ -4,6 +4,7 @@ import Header from "@/components/header";
 import CompressionSettings from "@/components/compression-settings";
 import ImageGallery from "@/components/image-gallery";
 import ProgressIndicator from "@/components/progress-indicator";
+import FloatingActions from "@/components/floating-actions";
 import { useImageCompression } from "@/hooks/use-image-compression";
 import { UploadedImage } from "@/components/image-compressor";
 import { Button } from "@/components/ui/button";
@@ -23,7 +24,18 @@ export default function Compress() {
     const storedImages = sessionStorage.getItem('uploadedImages');
     if (storedImages) {
       const parsedImages = JSON.parse(storedImages);
-      setUploadedImages(parsedImages);
+      // Restore file objects from global map
+      const restoredImages = parsedImages.map((img: any) => {
+        const actualFile = (window as any).uploadedFiles?.get(img.id);
+        return {
+          ...img,
+          file: actualFile || new File([], img.file.name, { 
+            type: img.file.type,
+            lastModified: img.file.lastModified 
+          })
+        };
+      });
+      setUploadedImages(restoredImages);
       // Clear from session storage after loading
       sessionStorage.removeItem('uploadedImages');
     } else {
@@ -101,6 +113,18 @@ export default function Compress() {
   const handleBackToHome = () => {
     uploadedImages.forEach(img => URL.revokeObjectURL(img.preview));
     setLocation('/');
+  };
+
+  const handleAddMoreImages = (newFiles: File[]) => {
+    const newImages: UploadedImage[] = newFiles.map((file, index) => ({
+      id: Date.now() + index + Math.random().toString(36).substr(2, 9),
+      file,
+      originalSize: file.size,
+      isCompressed: false,
+      preview: URL.createObjectURL(file)
+    }));
+    
+    setUploadedImages(prev => [...prev, ...newImages]);
   };
 
   if (uploadedImages.length === 0) {
@@ -228,6 +252,9 @@ export default function Compress() {
           </div>
         </div>
       </div>
+
+      {/* Floating Action Buttons */}
+      <FloatingActions onAddImages={handleAddMoreImages} />
     </div>
   );
 }
