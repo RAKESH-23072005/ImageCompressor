@@ -5,12 +5,14 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Home from "@/pages/home";
 import Compress from "@/pages/compress";
+import Download from "@/pages/download";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/compress" component={Compress} />
+      <Route path="/download" component={Download} />
     </Switch>
   );
 }

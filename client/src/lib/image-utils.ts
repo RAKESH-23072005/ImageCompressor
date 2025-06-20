@@ -27,23 +27,36 @@ export function compressImageFile(file: File, quality: number): Promise<Blob> {
 
     img.onload = () => {
       try {
-        // Calculate dimensions to maintain aspect ratio
-        const maxWidth = 1920;
-        const maxHeight = 1080;
+        // Calculate dimensions - be more aggressive with compression
+        let maxWidth = 1200;
+        let maxHeight = 800;
+        
+        // For large files, be even more aggressive
+        if (file.size > 5 * 1024 * 1024) { // > 5MB
+          maxWidth = 800;
+          maxHeight = 600;
+        } else if (file.size > 2 * 1024 * 1024) { // > 2MB
+          maxWidth = 1000;
+          maxHeight = 700;
+        }
         
         let { width, height } = img;
+        const originalRatio = width / height;
         
-        if (width > height) {
-          if (width > maxWidth) {
-            height = (height * maxWidth) / width;
-            width = maxWidth;
-          }
-        } else {
-          if (height > maxHeight) {
-            width = (width * maxHeight) / height;
-            height = maxHeight;
+        // Always resize for compression unless image is very small
+        if (width > 400 || height > 400) {
+          if (width > height) {
+            width = Math.min(width, maxWidth);
+            height = width / originalRatio;
+          } else {
+            height = Math.min(height, maxHeight);
+            width = height * originalRatio;
           }
         }
+
+        // Round dimensions to avoid fractional pixels
+        width = Math.round(width);
+        height = Math.round(height);
 
         canvas.width = width;
         canvas.height = height;
@@ -53,8 +66,12 @@ export function compressImageFile(file: File, quality: number): Promise<Blob> {
           return;
         }
 
-        // Set background for transparent images
-        if (file.type === 'image/png' || file.type === 'image/gif') {
+        // Improve canvas rendering quality for better compression
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+
+        // Only add white background for PNG with transparency
+        if (file.type === 'image/png') {
           ctx.fillStyle = '#FFFFFF';
           ctx.fillRect(0, 0, width, height);
         }
@@ -62,18 +79,53 @@ export function compressImageFile(file: File, quality: number): Promise<Blob> {
         // Draw and compress
         ctx.drawImage(img, 0, 0, width, height);
         
+        // Convert quality to proper range and ensure aggressive compression
+        let compressionQuality = Math.max(0.1, Math.min(0.85, quality / 100));
+        
+        // For large files, use lower quality automatically
+        if (file.size > 3 * 1024 * 1024) {
+          compressionQuality = Math.min(compressionQuality, 0.6);
+        } else if (file.size > 1 * 1024 * 1024) {
+          compressionQuality = Math.min(compressionQuality, 0.7);
+        }
+        
         canvas.toBlob(
           (blob) => {
             if (blob) {
               // Clean up
               URL.revokeObjectURL(img.src);
-              resolve(blob);
+              
+              // Ensure we actually reduced file size - be more aggressive
+              if (blob.size >= file.size * 0.8) {
+                // Try with much lower quality if compression didn't work well
+                const retryQuality = Math.max(0.1, compressionQuality - 0.4);
+                canvas.toBlob(
+                  (retryBlob) => {
+                    if (retryBlob && retryBlob.size < blob.size) {
+                      resolve(retryBlob);
+                    } else {
+                      // Last resort: try smallest possible JPEG
+                      canvas.toBlob(
+                        (finalBlob) => {
+                          resolve(finalBlob || blob);
+                        },
+                        'image/jpeg',
+                        0.1
+                      );
+                    }
+                  },
+                  'image/jpeg', // Force JPEG for better compression
+                  retryQuality
+                );
+              } else {
+                resolve(blob);
+              }
             } else {
               reject(new Error('Failed to compress image'));
             }
           },
-          file.type === 'image/png' ? 'image/png' : 'image/jpeg',
-          quality / 100
+          file.type === 'image/png' && quality > 80 ? 'image/png' : 'image/jpeg',
+          compressionQuality
         );
       } catch (error) {
         reject(new Error(`Compression failed: ${error}`));

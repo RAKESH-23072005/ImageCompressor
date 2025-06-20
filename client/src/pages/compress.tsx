@@ -101,6 +101,37 @@ export default function Compress() {
 
     setTimeout(() => {
       setIsCompressing(false);
+      
+      // Store compressed images data and redirect to download page
+      const compressedImagesData = uploadedImages
+        .filter(img => img.isCompressed && img.compressedBlob)
+        .map(img => ({
+          id: img.id,
+          originalName: img.file.name,
+          originalSize: img.originalSize,
+          compressedSize: img.compressedSize || 0,
+          compressedBlob: img.compressedBlob
+        }));
+      
+      if (compressedImagesData.length > 0) {
+        // Store in sessionStorage temporarily (Note: Blobs need special handling)
+        const dataToStore = compressedImagesData.map(img => ({
+          ...img,
+          compressedBlob: null // We'll recreate this from the global storage
+        }));
+        
+        // Store compressed blobs in global storage for download page
+        if (!(window as any).compressedBlobs) {
+          (window as any).compressedBlobs = new Map();
+        }
+        
+        compressedImagesData.forEach(img => {
+          (window as any).compressedBlobs.set(img.id, img.compressedBlob);
+        });
+        
+        sessionStorage.setItem('compressedImages', JSON.stringify(dataToStore));
+        setLocation('/download');
+      }
     }, 1000);
   };
 
