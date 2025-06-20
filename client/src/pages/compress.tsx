@@ -69,14 +69,14 @@ export default function Compress() {
   };
 
   const handleBatchCompress = async () => {
-    const uncompressedImages = uploadedImages.filter(img => !img.isCompressed);
-    if (uncompressedImages.length === 0) return;
+    // Compress ALL images, not just uncompressed ones
+    if (uploadedImages.length === 0) return;
 
     setIsCompressing(true);
-    setProgress({ current: 0, total: uncompressedImages.length });
+    setProgress({ current: 0, total: uploadedImages.length });
 
-    for (let i = 0; i < uncompressedImages.length; i++) {
-      const image = uncompressedImages[i];
+    for (let i = 0; i < uploadedImages.length; i++) {
+      const image = uploadedImages[i];
       try {
         // Get the actual file from global storage
         const actualFile = (window as any).imageFiles?.get(image.id);
@@ -93,16 +93,25 @@ export default function Compress() {
             : img
         ));
         
-        setProgress({ current: i + 1, total: uncompressedImages.length });
+        setProgress({ current: i + 1, total: uploadedImages.length });
       } catch (error) {
         console.error(`Failed to compress ${image.file.name}:`, error);
       }
     }
 
+    setIsCompressing(false);
+  };
+
+  const handleDownloadRedirect = async () => {
+    // First compress all images if not already compressed
+    const needsCompression = uploadedImages.some(img => !img.isCompressed);
+    
+    if (needsCompression) {
+      await handleBatchCompress();
+    }
+
+    // Wait a moment for compression to complete, then redirect
     setTimeout(() => {
-      setIsCompressing(false);
-      
-      // Store compressed images data and redirect to download page
       const compressedImagesData = uploadedImages
         .filter(img => img.isCompressed && img.compressedBlob)
         .map(img => ({
@@ -114,7 +123,7 @@ export default function Compress() {
         }));
       
       if (compressedImagesData.length > 0) {
-        // Store in sessionStorage temporarily (Note: Blobs need special handling)
+        // Store in sessionStorage temporarily
         const dataToStore = compressedImagesData.map(img => ({
           ...img,
           compressedBlob: null // We'll recreate this from the global storage
@@ -132,7 +141,7 @@ export default function Compress() {
         sessionStorage.setItem('compressedImages', JSON.stringify(dataToStore));
         setLocation('/download');
       }
-    }, 1000);
+    }, needsCompression ? 2000 : 100);
   };
 
   const handleClearAll = () => {
@@ -258,15 +267,9 @@ export default function Compress() {
                     <span className="font-medium">{uploadedImages.length}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Compressed:</span>
-                    <span className="font-medium text-success">
-                      {uploadedImages.filter(img => img.isCompressed).length}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Remaining:</span>
-                    <span className="font-medium text-orange-600">
-                      {uploadedImages.filter(img => !img.isCompressed).length}
+                    <span className="text-gray-600">Ready for compression:</span>
+                    <span className="font-medium text-primary">
+                      {uploadedImages.length}
                     </span>
                   </div>
                 </div>
@@ -301,23 +304,14 @@ export default function Compress() {
           {/* Fixed Compress All Button at Bottom */}
           <div className="border-t border-gray-200 p-6 bg-white">
             <Button
-              onClick={handleBatchCompress}
-              disabled={isCompressing || uploadedImages.filter(img => !img.isCompressed).length === 0}
+              onClick={handleDownloadRedirect}
+              disabled={uploadedImages.length === 0}
               className="w-full bg-primary text-white hover:bg-blue-700 font-medium py-4 text-lg shadow-lg"
             >
-              {isCompressing ? (
-                <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Compressing {progress.current}/{progress.total}...
-                </>
-              ) : (
-                <>
-                  <svg className="mr-2 h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V8zm0 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2z" clipRule="evenodd" />
-                  </svg>
-                  COMPRESS IMAGES ({uploadedImages.filter(img => !img.isCompressed).length})
-                </>
-              )}
+              <svg className="mr-2 h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+              DOWNLOAD IMAGES ({uploadedImages.length})
             </Button>
           </div>
         </div>

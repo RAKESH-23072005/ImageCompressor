@@ -87,19 +87,6 @@ export default function ImageCard({ image, onCompress, onDelete }: ImageCardProp
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
-          
-          {/* Status indicator */}
-          <div className="text-center">
-            {image.isCompressed ? (
-              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                ✓ Ready to download
-              </span>
-            ) : (
-              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                Ready to compress
-              </span>
-            )}
-          </div>
         </div>
       </div>
     </div>
