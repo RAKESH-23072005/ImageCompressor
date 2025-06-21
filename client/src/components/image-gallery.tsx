@@ -102,45 +102,36 @@ export default function ImageGallery({ images, onCompress, onDelete, onClearAll,
     <div>
       <div className="flex justify-between items-center mb-6">
         <h3 className="text-xl font-semibold text-gray-900">Your Images</h3>
-        <div className="flex space-x-3">
-          <Button
-            onClick={handleSortImages}
-            variant="outline"
-            className="text-gray-600 hover:text-gray-900 font-medium flex items-center"
-          >
-            <ArrowUpDown className="mr-2 h-4 w-4" />
-            Arrange {sortOrder === 'asc' ? 'A-Z' : 'Z-A'}
-          </Button>
-          {hasCompressedImages && (
+        <div className="flex flex-col items-end space-y-3">
+          <div className="flex space-x-3">
             <Button
-              onClick={handleDownloadAll}
-              className="bg-success text-white hover:bg-green-600 font-medium flex items-center"
+              onClick={handleSortImages}
+              variant="outline"
+              className="text-gray-600 hover:text-gray-900 font-medium flex items-center"
             >
-              <Download className="mr-2 h-4 w-4" />
-              Download All
+              <ArrowUpDown className="mr-2 h-4 w-4" />
+              Arrange {sortOrder === 'asc' ? 'A-Z' : 'Z-A'}
             </Button>
-          )}
+
+            <Button
+              onClick={onClearAll}
+              variant="outline"
+              className="text-gray-600 hover:text-gray-900 font-medium flex items-center"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Clear All
+            </Button>
+          </div>
           <Button
-            onClick={onClearAll}
-            variant="outline"
-            className="text-gray-600 hover:text-gray-900 font-medium flex items-center"
+            onClick={handleAddMoreImages}
+            className="bg-primary text-white hover:bg-blue-700 font-medium flex items-center"
           >
-            <Trash2 className="mr-2 h-4 w-4" />
-            Clear All
+            <Plus className="mr-2 h-4 w-4" />
+            Add More Images
           </Button>
         </div>
       </div>
 
-      <div className="flex justify-start mb-6">
-        <Button
-          onClick={handleAddMoreImages}
-          className="bg-primary text-white hover:bg-blue-700 font-medium flex items-center"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Add More Images
-        </Button>
-      </div>
-      
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {sortedImages.map((image) => (
           <ImageCard

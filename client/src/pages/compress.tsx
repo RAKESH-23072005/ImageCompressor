@@ -4,6 +4,7 @@ import Header from "@/components/header";
 import CompressionSettings from "@/components/compression-settings";
 import ImageGallery from "@/components/image-gallery";
 import ProgressIndicator from "@/components/progress-indicator";
+import Footer from "@/components/footer";
 
 import { useImageCompression } from "@/hooks/use-image-compression";
 import { UploadedImage } from "@/components/image-compressor";
@@ -27,12 +28,27 @@ export default function Compress() {
       // Restore file objects from global map
       const restoredImages = parsedImages.map((img: any) => {
         const actualFile = (window as any).imageFiles?.get(img.id);
+        // Try to get the file name from global compressedFileNames if available
+        let fallbackFile: File;
+        let fileName = img.file && img.file.name ? img.file.name : img.originalName;
+        if ((window as any).compressedFileNames && (window as any).compressedFileNames.get && (window as any).compressedFileNames.get(img.id)) {
+          fileName = (window as any).compressedFileNames.get(img.id);
+        }
+        if (fileName) {
+          try {
+            fallbackFile = new File([], fileName, {
+              type: img.file?.type || 'image/jpeg',
+              lastModified: img.file?.lastModified || Date.now(),
+            });
+          } catch {
+            fallbackFile = new File([], fileName);
+          }
+        } else {
+          fallbackFile = new File([], 'unknown.jpg');
+        }
         return {
           ...img,
-          file: actualFile || new File([], img.file.name, { 
-            type: img.file.type,
-            lastModified: img.file.lastModified 
-          })
+          file: actualFile || fallbackFile
         };
       });
       setUploadedImages(restoredImages);
@@ -43,6 +59,11 @@ export default function Compress() {
       setLocation('/');
     }
   }, [setLocation]);
+
+  useEffect(() => {
+    // Only clear sessionStorage if navigating away, not on refresh
+    return () => {};
+  }, [uploadedImages]);
 
   const handleSingleCompress = async (imageId: string) => {
     const image = uploadedImages.find(img => img.id === imageId);
@@ -121,23 +142,23 @@ export default function Compress() {
           compressedSize: img.compressedSize || 0,
           compressedBlob: img.compressedBlob
         }));
-      
       if (compressedImagesData.length > 0) {
         // Store in sessionStorage temporarily
         const dataToStore = compressedImagesData.map(img => ({
           ...img,
           compressedBlob: null // We'll recreate this from the global storage
         }));
-        
         // Store compressed blobs in global storage for download page
         if (!(window as any).compressedBlobs) {
           (window as any).compressedBlobs = new Map();
         }
-        
+        if (!(window as any).compressedFileNames) {
+          (window as any).compressedFileNames = new Map();
+        }
         compressedImagesData.forEach(img => {
           (window as any).compressedBlobs.set(img.id, img.compressedBlob);
+          (window as any).compressedFileNames.set(img.id, img.originalName);
         });
-        
         sessionStorage.setItem('compressedImages', JSON.stringify(dataToStore));
         setLocation('/download');
       }
@@ -191,6 +212,15 @@ export default function Compress() {
     setUploadedImages(prev => [...prev, ...newImages]);
   };
 
+  // Helper to format file size
+  const formatSize = (size: number) => {
+    if (size >= 1024 * 1024) {
+      return (size / (1024 * 1024)).toFixed(2) + ' MB';
+    } else {
+      return (size / 1024).toFixed(2) + ' KB';
+    }
+  };
+
   if (uploadedImages.length === 0) {
     return null; // Will redirect in useEffect
   }
@@ -206,14 +236,7 @@ export default function Compress() {
             {/* Header with back button */}
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center">
-                <Button
-                  variant="outline"
-                  onClick={handleBackToHome}
-                  className="mr-4 flex items-center"
-                >
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back to Upload
-                </Button>
+                {/* Removed Back to Upload button */}
                 <h1 className="text-2xl font-bold text-gray-900">Compress Images</h1>
               </div>
             </div>
@@ -259,18 +282,26 @@ export default function Compress() {
 
             {/* Statistics */}
             <div className="space-y-4">
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h3 className="font-medium text-gray-900 mb-2">Statistics</h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
+              <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-5 shadow-sm border border-blue-100">
+                <h3 className="font-semibold text-lg text-primary mb-3 flex items-center">
+                  <Info className="h-5 w-5 text-blue-500 mr-2" /> Statistics
+                </h3>
+                <div className="grid grid-cols-1 gap-3 text-sm">
+                  <div className="flex justify-between items-center">
                     <span className="text-gray-600">Total Images:</span>
-                    <span className="font-medium">{uploadedImages.length}</span>
+                    <span className="font-bold text-gray-900">{uploadedImages.length}</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex justify-between items-center">
                     <span className="text-gray-600">Ready for compression:</span>
-                    <span className="font-medium text-primary">
-                      {uploadedImages.length}
-                    </span>
+                    <span className="font-bold text-primary">{uploadedImages.length}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Total Original Size:</span>
+                    <span className="font-mono text-blue-700">{uploadedImages.length > 0 ? formatSize(uploadedImages.reduce((sum, img) => sum + img.originalSize, 0)) : '0.00 KB'}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Total Compressed Size:</span>
+                    <span className="font-mono text-green-700">{uploadedImages.filter(img => img.isCompressed).length > 0 ? formatSize(uploadedImages.filter(img => img.isCompressed).reduce((sum, img) => sum + (img.compressedSize || 0), 0)) : '0.00 KB'}</span>
                   </div>
                 </div>
               </div>
@@ -317,7 +348,7 @@ export default function Compress() {
         </div>
       </div>
 
-
+      <Footer />
     </div>
   );
 }

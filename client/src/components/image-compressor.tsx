@@ -132,6 +132,7 @@ export default function ImageCompressor() {
             onCompress={handleSingleCompress}
             onDelete={handleDeleteImage}
             onClearAll={handleClearAll}
+            onAddImages={handleFilesSelected}
           />
         </>
       )}

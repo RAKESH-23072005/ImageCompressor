@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import Header from "@/components/header";
+import Footer from "@/components/footer";
 import { Button } from "@/components/ui/button";
-import { Download, ArrowLeft, Share2, Facebook, Twitter, Linkedin } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Download, ArrowLeft, Share2, Facebook, Twitter, Linkedin, ChevronDown } from "lucide-react";
 import { formatFileSize } from "@/lib/image-utils";
 import JSZip from "jszip";
 
@@ -18,31 +20,71 @@ export default function DownloadPage() {
   const [, setLocation] = useLocation();
   const [compressedImages, setCompressedImages] = useState<CompressedImageData[]>([]);
   const [totalSavings, setTotalSavings] = useState(0);
+ const [downloadFormat, setDownloadFormat] = useState<"zip" | "individual">("individual");
+
+  useEffect(() => {
+    // Only clear sessionStorage if navigating away, not on refresh
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // Save compressed images and blobs to sessionStorage before refresh
+      if (compressedImages.length > 0) {
+        const dataToStore = compressedImages.map(img => ({
+          ...img,
+          compressedBlob: null // blobs can't be stored directly
+        }));
+        sessionStorage.setItem('compressedImages', JSON.stringify(dataToStore));
+        // Save blobs in global storage
+        if (!(window as any).compressedBlobs) {
+          (window as any).compressedBlobs = new Map();
+        }
+        compressedImages.forEach(img => {
+          (window as any).compressedBlobs.set(img.id, img.compressedBlob);
+        });
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [compressedImages]);
 
   useEffect(() => {
     const storedCompressedImages = sessionStorage.getItem('compressedImages');
+    // Restore compressed blobs from global storage if available, else do not filter
+    const compressedBlobs = (window as any).compressedBlobs;
     if (storedCompressedImages) {
       const parsedImages = JSON.parse(storedCompressedImages);
-      
-      // Restore compressed blobs from global storage
-      const compressedBlobs = (window as any).compressedBlobs;
+      let imagesWithBlobs;
       if (compressedBlobs) {
-        const imagesWithBlobs = parsedImages.map((img: any) => ({
+        imagesWithBlobs = parsedImages.map((img: any) => ({
           ...img,
           compressedBlob: compressedBlobs.get(img.id)
-        })).filter((img: any) => img.compressedBlob); // Only include images with valid blobs
-        
-        setCompressedImages(imagesWithBlobs);
-        
-        // Calculate total savings
-        const totalOriginal = imagesWithBlobs.reduce((sum: number, img: any) => sum + img.originalSize, 0);
-        const totalCompressed = imagesWithBlobs.reduce((sum: number, img: any) => sum + img.compressedSize, 0);
-        const savings = totalOriginal > 0 ? Math.round(((totalOriginal - totalCompressed) / totalOriginal) * 100) : 0;
-        setTotalSavings(savings);
+        })).filter((img: any) => img.compressedBlob);
+      } else {
+        // fallback: keep the parsed images as is (will not be downloadable, but will not blank page)
+        imagesWithBlobs = parsedImages;
       }
-      
-      // Clear from session storage
-      sessionStorage.removeItem('compressedImages');
+      setCompressedImages(imagesWithBlobs);
+      // Calculate total savings
+      const totalOriginal = imagesWithBlobs.reduce((sum: number, img: any) => sum + img.originalSize, 0);
+      const totalCompressed = imagesWithBlobs.reduce((sum: number, img: any) => sum + img.compressedSize, 0);
+      const savings = totalOriginal > 0 ? Math.round(((totalOriginal - totalCompressed) / totalOriginal) * 100) : 0;
+      setTotalSavings(savings);
+      // Automatically trigger download as individual files if blobs are available
+      if (compressedBlobs) {
+        setTimeout(() => {
+          imagesWithBlobs.forEach((image: any) => {
+            const url = URL.createObjectURL(image.compressedBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = image.originalName.replace(/\.[^/.]+$/, "") + "_compressed" + image.originalName.match(/\.[^/.]+$/)?.[0];
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          });
+        }, 500);
+      }
+      // Do NOT clear sessionStorage here, so data persists on refresh
     } else {
       // Redirect to home if no compressed images
       setLocation('/');
@@ -52,19 +94,8 @@ export default function DownloadPage() {
   const handleDownloadAll = async () => {
     if (compressedImages.length === 0) return;
 
-    if (compressedImages.length === 1) {
-      // Download single file directly
-      const image = compressedImages[0];
-      const url = URL.createObjectURL(image.compressedBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = image.originalName.replace(/\.[^/.]+$/, "") + "_compressed" + image.originalName.match(/\.[^/.]+$/)?.[0];
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } else {
-      // Download as ZIP for multiple files
+    if (downloadFormat === "zip" || compressedImages.length > 1) {
+      // Download as ZIP
       const zip = new JSZip();
       
       for (const image of compressedImages) {
@@ -84,6 +115,21 @@ export default function DownloadPage() {
         URL.revokeObjectURL(url);
       } catch (error) {
         console.error('Failed to create zip file:', error);
+      }
+    } else {
+      // Download individual files
+      for (const image of compressedImages) {
+        const url = URL.createObjectURL(image.compressedBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = image.originalName.replace(/\.[^/.]+$/, "") + "_compressed" + image.originalName.match(/\.[^/.]+$/)?.[0];
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        // Small delay between downloads to avoid browser blocking
+        await new Promise(resolve => setTimeout(resolve, 200));
       }
     }
   };
@@ -106,24 +152,43 @@ export default function DownloadPage() {
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Success Message */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6">
             Your IMAGES have been compressed!
           </h1>
           
-          {/* Download Button */}
-          <Button
-            onClick={handleDownloadAll}
-            className="bg-primary text-white hover:bg-blue-700 font-medium px-8 py-3 text-lg shadow-lg mb-6"
-          >
-            <Download className="mr-2 h-5 w-5" />
-            Download compressed IMAGES
-          </Button>
+          {/* Download Options */}
+          <div className="max-w-md mx-auto space-y-4 mb-6">
+            {/* Format Selection */}
+            <div className="text-left">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Download Format
+              </label>
+              <Select value={downloadFormat} onValueChange={(value: "zip" | "individual") => setDownloadFormat(value)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select download format" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="zip">ZIP File (All images in one archive)</SelectItem>
+                  <SelectItem value="individual">Individual Files (Original format)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {/* Download Button */}
+            <Button
+              onClick={handleDownloadAll}
+              className="w-full bg-primary text-white hover:bg-blue-700 font-medium py-4 text-lg shadow-lg"
+            >
+              <Download className="mr-2 h-5 w-5" />
+              {downloadFormat === "zip" ? "Download ZIP Archive" : "Download Individual Files"}
+            </Button>
+          </div>
           
           {/* Back Button */}
           <Button
             onClick={handleBackToCompress}
             variant="outline"
-            className="ml-4 px-6 py-3"
+            className="px-6 py-3"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back
@@ -151,7 +216,7 @@ export default function DownloadPage() {
         </div>
 
         {/* Continue Section */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+        {/* <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Continue to...</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Button
@@ -202,19 +267,19 @@ export default function DownloadPage() {
           <h3 className="text-lg font-semibold text-gray-900 mb-4">How can you thank us? Spread the word!</h3>
           <p className="text-gray-600 mb-4">Please share this tool to inspire more productive people!</p>
           <div className="flex space-x-4">
-            <Button variant="outline" size="sm" className="flex items-center">
+            <Button variant="outline" size="sm" className="flex items-center" onClick={() => window.open('https://wa.me/?text=Check%20out%20this%20awesome%20image%20compressor%20tool!%20https://yourwebsite.com', '_blank')}>
               <Share2 className="mr-2 h-4 w-4" />
-              Trustpilot
+              Whatsapp
             </Button>
-            <Button variant="outline" size="sm" className="flex items-center">
+            <Button variant="outline" size="sm" className="flex items-center" onClick={() => window.open('https://www.facebook.com/sharer/sharer.php?u=https://yourwebsite.com', '_blank')}>
               <Facebook className="mr-2 h-4 w-4" />
               Facebook
             </Button>
-            <Button variant="outline" size="sm" className="flex items-center">
+            <Button variant="outline" size="sm" className="flex items-center" onClick={() => window.open('https://twitter.com/intent/tweet?url=https://yourwebsite.com&text=Check%20out%20this%20awesome%20image%20compressor%20tool!', '_blank')}>
               <Twitter className="mr-2 h-4 w-4" />
               Twitter
             </Button>
-            <Button variant="outline" size="sm" className="flex items-center">
+            <Button variant="outline" size="sm" className="flex items-center" onClick={() => window.open('https://www.linkedin.com/sharing/share-offsite/?url=https://yourwebsite.com', '_blank')}>
               <Linkedin className="mr-2 h-4 w-4" />
               LinkedIn
             </Button>
@@ -232,6 +297,7 @@ export default function DownloadPage() {
           </p>
         </div>
       </main>
+      <Footer />
     </div>
   );
 }
