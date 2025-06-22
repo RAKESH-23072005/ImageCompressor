@@ -5,6 +5,7 @@ import { UploadedImage } from "./image-compressor";
 import JSZip from "jszip";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import GoogleAd from "./GoogleAd";
 
 interface ImageGalleryProps {
   images: UploadedImage[];
@@ -17,7 +18,7 @@ interface ImageGalleryProps {
 export default function ImageGallery({ images, onCompress, onDelete, onClearAll, onAddImages }: ImageGalleryProps) {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const { toast } = useToast();
-  
+
   const compressedImages = images.filter(img => img.isCompressed);
   const hasCompressedImages = compressedImages.length > 0;
 
@@ -37,7 +38,7 @@ export default function ImageGallery({ images, onCompress, onDelete, onClearAll,
         }
         return true;
       });
-      
+
       if (validFiles.length > 0) {
         onAddImages(validFiles);
       }
@@ -75,7 +76,7 @@ export default function ImageGallery({ images, onCompress, onDelete, onClearAll,
     if (compressedImages.length === 0) return;
 
     const zip = new JSZip();
-    
+
     for (const image of compressedImages) {
       if (image.compressedBlob) {
         const fileName = image.file.name.replace(/\.[^/.]+$/, "") + "_compressed" + image.file.name.match(/\.[^/.]+$/)?.[0];
@@ -98,16 +99,55 @@ export default function ImageGallery({ images, onCompress, onDelete, onClearAll,
     }
   };
 
+  // Create gallery items with ads interspersed
+  const renderGalleryItems = () => {
+    const items: React.ReactNode[] = [];
+
+    sortedImages.forEach((image, index) => {
+      // Add image card
+      items.push(
+        <ImageCard
+          key={image.id}
+          image={image}
+          onCompress={() => onCompress(image.id)}
+          onDelete={() => onDelete(image.id)}
+        />
+      );
+
+      // Add ad every 3 images (after 2nd, 5th, 8th, etc.)
+      if ((index + 1) % 3 === 0 && index < sortedImages.length - 1) {
+        items.push(
+          <div key={`ad-${index}`} className="col-span-full my-4">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <GoogleAd
+                slot="YOUR_AD_SLOT_ID"
+                style={{
+                  display: "block",
+                  width: "100%",
+                  minHeight: 90,
+                  maxHeight: 120,
+                  margin: "0 auto"
+                }}
+              />
+            </div>
+          </div>
+        );
+      }
+    });
+
+    return items;
+  };
+
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 space-y-4 sm:space-y-0">
         <h3 className="text-xl font-semibold text-gray-900">Your Images</h3>
-        <div className="flex flex-col items-end space-y-3">
-          <div className="flex space-x-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-3 sm:space-y-0 sm:space-x-3">
+          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
             <Button
               onClick={handleSortImages}
               variant="outline"
-              className="text-gray-600 hover:text-gray-900 font-medium flex items-center"
+              className="text-gray-600 hover:text-gray-900 font-medium flex items-center justify-center"
             >
               <ArrowUpDown className="mr-2 h-4 w-4" />
               Arrange {sortOrder === 'asc' ? 'A-Z' : 'Z-A'}
@@ -116,7 +156,7 @@ export default function ImageGallery({ images, onCompress, onDelete, onClearAll,
             <Button
               onClick={onClearAll}
               variant="outline"
-              className="text-gray-600 hover:text-gray-900 font-medium flex items-center"
+              className="text-gray-600 hover:text-gray-900 font-medium flex items-center justify-center"
             >
               <Trash2 className="mr-2 h-4 w-4" />
               Clear All
@@ -124,7 +164,7 @@ export default function ImageGallery({ images, onCompress, onDelete, onClearAll,
           </div>
           <Button
             onClick={handleAddMoreImages}
-            className="bg-primary text-white hover:bg-blue-700 font-medium flex items-center"
+            className="bg-primary text-white hover:bg-blue-700 font-medium flex items-center justify-center"
           >
             <Plus className="mr-2 h-4 w-4" />
             Add More Images
@@ -132,15 +172,8 @@ export default function ImageGallery({ images, onCompress, onDelete, onClearAll,
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {sortedImages.map((image) => (
-          <ImageCard
-            key={image.id}
-            image={image}
-            onCompress={() => onCompress(image.id)}
-            onDelete={() => onDelete(image.id)}
-          />
-        ))}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        {renderGalleryItems()}
       </div>
 
       {/* Hidden file input */}

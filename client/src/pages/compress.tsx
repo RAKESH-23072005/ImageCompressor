@@ -5,6 +5,9 @@ import CompressionSettings from "@/components/compression-settings";
 import ImageGallery from "@/components/image-gallery";
 import ProgressIndicator from "@/components/progress-indicator";
 import Footer from "@/components/footer";
+import GoogleAd from "@/components/GoogleAd";
+import TimeDelayedAd from "@/components/time-delayed-ad";
+import SEO from "@/components/seo";
 
 import { useImageCompression } from "@/hooks/use-image-compression";
 import { UploadedImage } from "@/components/image-compressor";
@@ -62,7 +65,7 @@ export default function Compress() {
 
   useEffect(() => {
     // Only clear sessionStorage if navigating away, not on refresh
-    return () => {};
+    return () => { };
   }, [uploadedImages]);
 
   const handleSingleCompress = async (imageId: string) => {
@@ -78,9 +81,9 @@ export default function Compress() {
       }
 
       const compressedBlob = await compressImage(actualFile, compressionQuality);
-      
-      setUploadedImages(prev => prev.map(img => 
-        img.id === imageId 
+
+      setUploadedImages(prev => prev.map(img =>
+        img.id === imageId
           ? { ...img, isCompressed: true, compressedBlob, compressedSize: compressedBlob.size }
           : img
       ));
@@ -107,13 +110,13 @@ export default function Compress() {
         }
 
         const compressedBlob = await compressImage(actualFile, compressionQuality);
-        
-        setUploadedImages(prev => prev.map(img => 
-          img.id === image.id 
+
+        setUploadedImages(prev => prev.map(img =>
+          img.id === image.id
             ? { ...img, isCompressed: true, compressedBlob, compressedSize: compressedBlob.size }
             : img
         ));
-        
+
         setProgress({ current: i + 1, total: uploadedImages.length });
       } catch (error) {
         console.error(`Failed to compress ${image.file.name}:`, error);
@@ -126,7 +129,7 @@ export default function Compress() {
   const handleDownloadRedirect = async () => {
     // First compress all images if not already compressed
     const needsCompression = uploadedImages.some(img => !img.isCompressed);
-    
+
     if (needsCompression) {
       await handleBatchCompress();
     }
@@ -178,7 +181,7 @@ export default function Compress() {
       URL.revokeObjectURL(image.preview);
     }
     setUploadedImages(prev => prev.filter(img => img.id !== imageId));
-    
+
     // If no images left, redirect to home
     if (uploadedImages.length === 1) {
       setLocation('/');
@@ -193,13 +196,13 @@ export default function Compress() {
   const handleAddMoreImages = (newFiles: File[]) => {
     const newImages: UploadedImage[] = newFiles.map((file, index) => {
       const id = Date.now() + index + Math.random().toString(36).substr(2, 9);
-      
+
       // Store actual file in global storage for compression
       if (!(window as any).imageFiles) {
         (window as any).imageFiles = new Map();
       }
       (window as any).imageFiles.set(id, file);
-      
+
       return {
         id,
         file,
@@ -208,7 +211,7 @@ export default function Compress() {
         preview: URL.createObjectURL(file)
       };
     });
-    
+
     setUploadedImages(prev => [...prev, ...newImages]);
   };
 
@@ -227,11 +230,17 @@ export default function Compress() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <SEO
+        title="Compress Images Online - Batch Image Compression | docFlow"
+        description="Compress multiple images online with our advanced compression tool. Batch process JPG, PNG, GIF, and WebP files. Adjust quality settings and download compressed images instantly."
+        keywords="compress images online, batch image compression, image compression tool, compress multiple images, jpg compression, png compression, gif compression, webp compression"
+        canonical="https://yourwebsite.com/compress"
+      />
       <Header />
-      
-      <div className="flex">
+
+      <div className="flex flex-col lg:flex-row">
         {/* Main Content */}
-        <div className="flex-1 p-6">
+        <div className="flex-1 p-6 order-1 lg:order-1">
           <div className="max-w-6xl mx-auto">
             {/* Header with back button */}
             <div className="flex items-center justify-between mb-6">
@@ -248,6 +257,27 @@ export default function Compress() {
               isCompressing={isCompressing}
             />
 
+            {/* Mobile In-Content Ad */}
+            <div className="block lg:hidden mb-6">
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-gray-500 font-medium">Advertisement</span>
+                  <button className="text-xs text-gray-400 hover:text-gray-600">×</button>
+                </div>
+                <GoogleAd
+                  slot="YOUR_AD_SLOT_ID"
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    minHeight: 100,
+                    maxHeight: 120,
+                    margin: "0 auto",
+                    borderRadius: "8px"
+                  }}
+                />
+              </div>
+            </div>
+
             {isCompressing && (
               <ProgressIndicator
                 current={progress.current}
@@ -262,11 +292,39 @@ export default function Compress() {
               onClearAll={handleClearAll}
               onAddImages={handleAddMoreImages}
             />
+
+            {/* Desktop floating ad - only show on desktop */}
+            <div className="hidden lg:flex justify-center my-8">
+              <div className="fixed bottom-4 right-4 z-50" id="floating-ad">
+                <div className="relative bg-white rounded-lg shadow-2xl border border-gray-200 p-4 max-w-sm">
+                  <button
+                    onClick={() => {
+                      const adContainer = document.getElementById('floating-ad');
+                      if (adContainer) adContainer.style.display = 'none';
+                    }}
+                    className="absolute -top-3 -right-3 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold hover:bg-red-600 transition-colors shadow-lg border-2 border-white"
+                  >
+                    ×
+                  </button>
+                  <GoogleAd
+                    slot="YOUR_AD_SLOT_ID"
+                    style={{
+                      display: "block",
+                      minHeight: 250,
+                      width: '280px',
+                      margin: '0 auto',
+                      borderRadius: '8px',
+                      overflow: 'hidden'
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Sidebar */}
-        <div className="w-80 bg-white border-l border-gray-200 flex flex-col min-h-screen">
+        {/* Sidebar - Desktop: Right side, Mobile: Bottom */}
+        <div className="w-full lg:w-80 bg-white border-t lg:border-l lg:border-t-0 border-gray-200 flex flex-col min-h-screen order-2 lg:order-2">
           <div className="flex-1 p-6">
             <div className="mb-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Compress images</h2>
@@ -316,7 +374,7 @@ export default function Compress() {
                       const totalOriginalSize = compressedImages.reduce((sum, img) => sum + img.originalSize, 0);
                       const totalCompressedSize = compressedImages.reduce((sum, img) => sum + (img.compressedSize || 0), 0);
                       const savings = totalOriginalSize > 0 ? Math.round(((totalOriginalSize - totalCompressedSize) / totalOriginalSize) * 100) : 0;
-                      
+
                       return (
                         <div className="space-y-2">
                           <div className="flex justify-between">

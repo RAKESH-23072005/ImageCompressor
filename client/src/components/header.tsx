@@ -21,6 +21,11 @@ export default function Header() {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex items-center">
+          <img
+                src="/doclogo.svg"
+                alt="docFlow Logo"
+                className="h-8 w-auto"
+              />
             <div
               className="text-2xl font-bold text-gray-900 cursor-pointer hover:scale-105 transition-transform duration-200"
               onClick={() => setLocation("/")}
