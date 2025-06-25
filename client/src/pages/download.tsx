@@ -329,7 +329,7 @@ export default function DownloadPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {/* WhatsApp */}
             <button
-              onClick={() => window.open('https://wa.me/?text=Check%20out%20this%20awesome%20image%20compressor%20tool!%20https://yourwebsite.com', '_blank')}
+              onClick={() => window.open('https://wa.me/?text=Check%20out%20this%20awesome%20image%20compressor%20tool!%20https://docflow-9gr1.onrender.com', '_blank')}
               className="group relative overflow-hidden bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-xl p-4 transition-all duration-300 transform hover:scale-105 hover:shadow-xl"
             >
               <div className="flex flex-col items-center space-y-2">
@@ -344,7 +344,7 @@ export default function DownloadPage() {
 
             {/* Facebook */}
             <button
-              onClick={() => window.open('https://www.facebook.com/sharer/sharer.php?u=https://yourwebsite.com', '_blank')}
+              onClick={() => window.open('https://www.facebook.com/sharer/sharer.php?u=https://docflow-9gr1.onrender.com', '_blank')}
               className="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl p-4 transition-all duration-300 transform hover:scale-105 hover:shadow-xl"
             >
               <div className="flex flex-col items-center space-y-2">
@@ -357,7 +357,7 @@ export default function DownloadPage() {
 
             {/* Twitter */}
             <button
-              onClick={() => window.open('https://twitter.com/intent/tweet?url=https://yourwebsite.com&text=Check%20out%20this%20awesome%20image%20compressor%20tool!', '_blank')}
+              onClick={() => window.open('https://twitter.com/intent/tweet?url=https://docflow-9gr1.onrender.com', '_blank')}
               className="group relative overflow-hidden bg-gradient-to-r from-sky-500 to-sky-600 hover:from-sky-600 hover:to-sky-700 text-white rounded-xl p-4 transition-all duration-300 transform hover:scale-105 hover:shadow-xl"
             >
               <div className="flex flex-col items-center space-y-2">
@@ -370,7 +370,7 @@ export default function DownloadPage() {
 
             {/* LinkedIn */}
             <button
-              onClick={() => window.open('https://www.linkedin.com/sharing/share-offsite/?url=https://yourwebsite.com', '_blank')}
+              onClick={() => window.open('https://www.linkedin.com/sharing/share-offsite/?url=https://docflow-9gr1.onrender.com', '_blank')}
               className="group relative overflow-hidden bg-gradient-to-r from-blue-700 to-blue-800 hover:from-blue-800 hover:to-blue-900 text-white rounded-xl p-4 transition-all duration-300 transform hover:scale-105 hover:shadow-xl"
             >
               <div className="flex flex-col items-center space-y-2">
@@ -387,7 +387,7 @@ export default function DownloadPage() {
             <div className="flex flex-wrap justify-center gap-3">
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText('https://yourwebsite.com');
+                  navigator.clipboard.writeText('https://docflow-9gr1.onrender.com');
                   toast({
                     title: "Link Copied",
                     description: "The link has been copied to your clipboard!"
